@@ -1,23 +1,40 @@
-declare function identityOverload(value: string): string;
-declare function identityOverload(value: number): number;
-declare function identityOverload(value: boolean): boolean;
-declare function identityOverload(value: number[]): number[];
-declare function identityOverload(value: string[]): string[];
-declare function identityOverload(value: object): object;
-declare const s: object;
-declare function identity<T>(value: T): T;
+declare function uniqueArray<T>(arr: Array<T>): Array<T>;
+declare const arr1: number[];
+declare const arr2: string[];
+declare const arr3: number[];
+declare const arr4: string[];
 type User = {
-    id: number;
+    id: number | string;
     name: string;
+    tel: string;
+    address: string;
 };
-declare let user: User;
-declare const s1 = "hello";
-declare const s2 = 123;
-declare const s3: User;
-declare function getArray<T>(a: T, b: T): T[];
-declare const as: string[];
-declare function myNumberFilter(arr: number[], callback: (item: number, index?: number) => boolean): number[];
-declare const filterArr: number[];
-declare function filter<T>(arr: T[], callback: (item: T, index?: number) => boolean): T[];
-declare const filterArr2: number[];
-declare const filterArr3: string[];
+type Computer = {
+    id: number | string;
+    name: string;
+    brand: string;
+    price: number;
+};
+type ResultData<T> = {
+    message: string;
+    code: number;
+    data: T;
+};
+type UserData = ResultData<User>;
+type ComputerData = ResultData<Computer>;
+declare const userResultData: UserData;
+declare const computerResultData: ComputerData;
+type MyEvent<T> = {
+    target: T;
+    type: string;
+};
+interface TimeEvent<T> {
+    event: MyEvent<T>;
+    from: Date;
+    to: Date;
+}
+declare const myEvent: MyEvent<HTMLButtonElement | null>;
+declare const timerEvent: TimeEvent<HTMLDivElement | null>;
+declare function triggerEvent<T>(event: MyEvent<T>): void;
+type Nullable<T> = T | null | undefined;
+declare let str: Nullable<string>;
