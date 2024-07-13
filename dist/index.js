@@ -1,23 +1,58 @@
 "use strict";
-/* 重载 */
-// 比如有这样简单的需求：函数有两个参数，要求两个参数如果都是number类型，那么就做乘法操作，返回计算结果，如果两个参数都是字符串，就做字符串拼接，并返回字符串拼接结果。其他情况直接抛出异常：参数类型必须相同
-// function combineNumber(a: number, b: number): number {
-//   return a * b;
-// }
-// function combingString(a: string, b: string): string {
-//   return a + b;
-// }
-// 由此可以看出上面的两个函数虽然达到了要求, 但是代码重复率很高
-function combine(a, b) {
-    if (typeof a === 'number' && typeof b === 'number') {
-        return a * b;
-    }
-    else if (typeof a === 'string' && typeof b === 'string') {
-        return a + b;
-    }
-    else {
-        throw new Error('参数类型必须相同');
-    }
+/* 理解泛型 */
+function identityOverload(value) {
+    return value;
 }
-const result = combine("a", 2); // 但是当我参数不一致时, ts并不能报错, 虽然我们在函数内部做了报错处理, 但那只是运行时的报错, 并不是编译时的报错
-console.log(result); // 报错
+// 由此看来这样特别麻烦, 而且还不够灵活, 所以我们可以使用泛型来解决这个问题
+const s = identityOverload({ id: 1, name: 'John' });
+// console.log(s.name) // error
+// 使用泛型解决
+function identity(value) {
+    return value;
+}
+let user = {
+    id: 1,
+    name: "John"
+};
+// const s1 = identity<string>("hello")
+// const s2 = identity<number>(123)
+// const s3 = identity<User>(user)
+// console.log(s3.name);
+const s1 = identity("hello");
+const s2 = identity(123);
+const s3 = identity(user);
+console.log(s3.name);
+// 传入相同的两个参数, 得到这个类型的数组
+function getArray(a, b) {
+    return [a, b];
+}
+const as = getArray("a", "b");
+// 简化上节课的例子
+function myNumberFilter(arr, callback) {
+    const result = [];
+    for (let i = 0; i < arr.length; i++) {
+        const item = arr[i];
+        if (callback(item)) {
+            result.push(item);
+        }
+    }
+    return result;
+}
+// 这个例子只能传入 number 类型的数组, 不实用
+const filterArr = myNumberFilter([1, 2, 3, 4, 5], item => item > 2);
+// 使用泛型优化
+function filter(arr, callback) {
+    const result = [];
+    for (let i = 0; i < arr.length; i++) {
+        const item = arr[i];
+        if (callback(item)) {
+            result.push(item);
+        }
+    }
+    return result;
+}
+// 这个例子可以传入任意类型的数组
+const filterArr2 = filter([1, 2, 3, 4, 5], item => item % 2 === 0);
+console.log(filterArr2); // [ 2, 4 ]
+const filterArr3 = filter(["xxx.js", "aaa.ts", "bbb.java", "ccc.md"], item => item.endsWith(".ts"));
+console.log(filterArr3); // [ 'aaa.ts' ]

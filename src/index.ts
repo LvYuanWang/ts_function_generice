@@ -1,78 +1,92 @@
-/* 重载 */
+/* 理解泛型 */
 
-// 示例一: 比如有这样简单的需求：函数有两个参数，要求两个参数如果都是number类型，那么就做乘法操作，返回计算结果，如果两个参数都是字符串，就做字符串拼接，并返回字符串拼接结果。其他情况直接抛出异常：参数类型必须相同
-function combineNumber(a: number, b: number): number {
-  return a * b;
+// 当我们需要定义一个函数, 这个函数的作用就是传入什么类型的数据, 就返回什么类型的数据
+// 但是需要注意的是, 在 TS 中创建函数必须要指定参数的类型, 不指定类型就会默认为 any 类型这样也会报错, 然而函数重载也是可以解决这个问题, 但是最优解决方案还是使用泛型
+function identityOverload(value: string): string;
+function identityOverload(value: number): number;
+function identityOverload(value: boolean): boolean;
+function identityOverload(value: number[]): number[];
+function identityOverload(value: string[]): string[];
+function identityOverload(value: object): object;
+function identityOverload(value: string | number | boolean | number[] | string[] | object) {
+  return value
 }
 
-function combingString(a: string, b: string): string {
-  return a + b;
+// 由此看来这样特别麻烦, 而且还不够灵活, 所以我们可以使用泛型来解决这个问题
+const s = identityOverload({ id: 1, name: 'John' });
+// console.log(s.name) // error
+
+// 使用泛型解决
+function identity<T>(value: T): T {
+  return value
 }
 
-// 由此可以看出上面的两个函数虽然达到了要求, 但是代码重复率很高
-function combineNS(a: number | string, b: number | string): number | string {
-  if (typeof a === 'number' && typeof b === 'number') {
-    return a * b;
-  } else if (typeof a === 'string' && typeof b === 'string') {
-    return a + b;
-  } else {
-    throw new Error('参数类型必须相同');
+type User = {
+  id: number,
+  name: string
+}
+
+let user: User = {
+  id: 1,
+  name: "John"
+}
+
+// const s1 = identity<string>("hello")
+// const s2 = identity<number>(123)
+// const s3 = identity<User>(user)
+// console.log(s3.name);
+
+const s1 = identity("hello")
+const s2 = identity(123)
+const s3 = identity(user)
+console.log(s3.name);
+
+
+// 传入相同的两个参数, 得到这个类型的数组
+function getArray<T>(a: T, b: T) {
+  return [a, b]
+}
+const as = getArray<string>("a", "b");
+
+// 简化上节课的例子
+function myNumberFilter(arr: number[], callback: (item: number, index?: number) => boolean): number[] {
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i];
+    if (callback(item)) {
+      result.push(item);
+    }
   }
+  return result;
 }
+// 这个例子只能传入 number 类型的数组, 不实用
+const filterArr = myNumberFilter([1, 2, 3, 4, 5], item => item > 2);
 
-const resultData = combineNS("a", 2); // 但是当我参数不一致时, ts并不能报错, 虽然我们在函数内部做了报错处理, 但那只是运行时的报错, 并不是编译时的报错
-console.log(resultData);  // 报错
+// 使用泛型优化
+// function filter<T>(arr: T[], callback: (item: T, index?: number) => boolean): T[] {
+//   const result = [];
+//   for (let i = 0; i < arr.length; i++) {
+//     const item = arr[i];
+//     if (callback(item)) {
+//       result.push(item);
+//     }
+//   }
+//   return result;
+// }
 
-// 使用函数重载
-// 重载签名
-function combine(a: number, b: number): number;
-function combine(a: string, b: string): string;
-// 重载的实现签名
-function combine(a: number | string, b: number | string): number | string {
-  if (typeof a === 'number' && typeof b === 'number') {
-    return a * b;
-  } else if (typeof a === 'string' && typeof b === 'string') {
-    return a + b;
-  } else {
-    throw new Error('参数类型必须相同');
+const filter = <T>(arr: T[], callback: (item: T, index?: number) => boolean): T[] => {
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i];
+    if (callback(item)) {
+      result.push(item);
+    }
   }
+  return result;
 }
+// 这个例子可以传入任意类型的数组
+const filterArr2 = filter([1, 2, 3, 4, 5], item => item % 2 === 0);
+console.log(filterArr2);  // [ 2, 4 ]
 
-// const result = combine(1, '2'); // 报错
-const result = combine(1, 2);
-console.log(result); // 2
-
-
-// 示例二: 如果传入string类型，就转换为10进制的number类型，如果传入的是number类型或者其他类型，就调用toString()转换为string类型
-function changeTypeNS(x: string | number): string | number {
-  return typeof x === 'string' ? parseInt(x, 10) : x.toString();
-}
-const resultChangeNS = changeTypeNS(6); // resultChange的类型任然是string | number
-
-// 使用函数重载
-function changeType(x: string): number;
-function changeType(x: number): string;
-function changeType(x: number | string): number | string {
-  return typeof x === 'string' ? parseInt(x, 10) : x.toString();
-}
-const resultChange = changeType(6); // resultChange的类型是number
-
-
-// 示例三: 一个创建dom的函数, 根据传入的tagName创建不同的dom元素
-function createElementS(tagName: string): HTMLElement {
-  return document.createElement(tagName);
-}
-
-const a = createElementS('a'); // 虽然逻辑大概是这样, 但是 a 的类型是 HTMLElement, 并不是 HTMLAnchorElement, 并且函数的参数可以任意传一个string不报错, 比如↓
-const img = document.createElement('img'); // img 的类型是 HTMLImageElement
-
-// 使用函数重载
-function createElement(tagName: 'a'): HTMLAnchorElement;
-function createElement(tagName: 'div'): HTMLDivElement;
-function createElement(tagName: 'canvas'): HTMLCanvasElement;
-function createElement(tagName: string): HTMLElement {
-  return document.createElement(tagName);
-}
-
-// const sa = createElement('sa'); // 报错
-const div = createElement('div'); // div 的类型是 HTMLDivElement
+const filterArr3 = filter(["xxx.js", "aaa.ts", "bbb.java", "ccc.md"], item => item.endsWith(".ts"));
+console.log(filterArr3);  // [ 'aaa.ts' ]
