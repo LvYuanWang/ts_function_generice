@@ -1,175 +1,128 @@
-## 调用签名
+## 重载
 
-我们现在在讲函数，那么我们声明的函数到底是什么类型呢？就是一个`Function`类型吗？
+在某些逻辑较复杂的情况下，函数可能有多组入参类型和返回值类型.
 
-其实，和我们之前讲的对象类型一样，object能描述所有对象，function也可以描述所有函数，但是并不能体现函数的具体类型
+比如有这样简单的需求：函数有两个参数，要求两个参数如果都是number类型，那么就做乘法操作，返回计算结果，如果两个参数都是字符串，就做字符串拼接，并返回字符串拼接结果。其他情况直接抛出异常：参数类型必须相同
 
-```typescript
-function add(a: number, b: number) { 
-  return a + b;
-}
-```
-
-像上面这样的函数，我们可以用Typescript进行描述
-
-```typescript
-(a: number, b: number) => number
-```
-
-这是Typescript表示函数类型的句法，也称为**调用签名**。
-
-> 函数的调用签名只包含类型层面的代码，即只有类型，没有值。因此，函数的调用签名可以表示参数的类型、this的类型、返回值的类型。剩余参数的类型和可选参数的类型，但是无法表示默认值（因为默认值是值，不是类型）。调用签名没有函数体，无法推导出返回类型，所以必须显式的注解
+> 首先，**很多初学者的直观想法是，我直接声明两个不同的函数不就完了**。
 >
-> 函数签名其实对我们写函数也有指导意义。
+> 首先这种做法不是我们要讲的这个概念。另外，其实我们做的事情是一样的，比如`console.log()`函数，我们可以传递number，string，boolean甚至对象，都能实现打印，但是使用用到的都是一个`console.log()`函数，如果不同的参数，对应不同的函数名，那这样对于使用者来说，是极大的心智负担。
+
+根据这样的做法，我们很容易写出下面的代码：
 
 ```typescript
-type Greet = (name: string) => string;
-function greet(name: string) { return name }
-
-type Log = (userId: number, message?: string) => void;
-function log(userId: number, message="hello") {}
-
-type SumFn = (...numbers: number[]) => number;
-function sumFn(...numbers: number[]): number {
-  return numbers.reduce((total, n) => total + n, 0);
-}
-```
-
-我们可以把调用签名和函数表达式结合起来
-
-```typescript
-type Log = (userId: number, message?: string) => void;
-const log: Log = (userId, message) => {
-  console.log(userId, message);
-}
-```
-
-将函数表达式注解为Log类型后，你会发现，不必再此注解参数的类型，因为在定义Log类型的时候已经注解了message和userId的类型。Typescript能从Log中推导出来，同理，返回值类型其实也是一样（当然返回值类型本身就能帮我们进行推导）
-
-上面使用的都是类型别名，当然也能使用`interface`
-
-```typescript
-interface Log {
-  (userId: number, message?: string): void;
-}
-
-// type Log = (userId: number, message?: string) => void;
-const log: Log = (userId, message) => {
-  console.log(userId, message);
-}
-```
-
-其实，如果我们已经有具体的函数了，完全可以通过`typeof`获取函数的类型声明
-
-```typescript
-function greet(name: string) { return name }
-
-function log(message: string, userId="xxx1") {}
-
-function sumFn(...numbers: number[]): number {
-  return numbers.reduce((total, n) => total + n, 0);
-}
-
-type Greet = typeof greet;
-type Log = typeof log;
-type SumFn = typeof sumFn;
-```
-
-如果是有回调函数，一样添加回调函数相关声明就行了
-
-```typescript
-function handleData(data: string, callback:(err: Error | null, result: string) => void):void {
-  // 模拟一些操作
-  if (data === "error") {
-    callback(new Error("An error occurred"), "");
-  } else {
-    callback(null, `Processed data: ${data}`);
+function combine(a: number | string, b: number | string){ 
+  if (typeof a === "number" && typeof b === "number") { 
+    return a * b;
+  } else if (typeof a === "string" && typeof b === "string") { 
+    return a + b;
   }
+  throw new Error("must be of the same type");
+}
+
+const result = combine(2, 3);
+```
+
+**这个代码，咋看没有任何问题，但实际上隐含了很多问题在里面。**
+
+**第一个，这样的代码实际并没有起到类型约束的效果**，我们要类型系统，目的就是要在编译期间就帮我们提示错误，避免运行时错误，然后再回来调试。而现在这个代码的问题：
+
+1. 参数可以输`number`也可以输入`string`，并没有在编译时就给我提示不能输入不同类型的参数
+2. 返回值类型并不固定，两个参数是`number`，那么返回的类型，就应该一定是`number`，但是现在返回的是`string | number`
+
+**第二个，是类型编程语言的常识问题**：在很多静态语言中，一旦指定了特定的参数和返回类型，就只能使用相应的参数调用函数，而且返回值的类型始终如一。而我们已经习惯了Javascript的写法，了解了一点点Typescript语法，就觉得上面应该是没问题的啊，有类型的限定，有函数的自动推导。
+
+其实，在很多静态语言中，上面的写法根本不成立，要么参数指定是数值类型，要么参数固定是字符串类型，也没有所谓的推导，函数返回值类型也必须指定，比如**下面的伪代码**：
+
+```typescript
+function combine(a:number, b:number):number{
+	return a * b
+}
+function combine(a:string, b:string):string{
+	return a + b
 }
 ```
 
-当然可以把`callback`的声明再提取成一个类型别名
+声明函数的时候就固定好，这样省去了判断的麻烦。
+
+所以，简单来说，其实Typescript对比其他静态编程语言，还是具有一定的动态性，函数的输出类型取决于输入类型的推导。你可以把这个理解为Typescript是更先进的类型系统...也可以理解为是为了兼容Javascript的动态性不得已而为之。
+
+基于这个问题，我们可以使用**函数重载签名（Overload Signature）**来解决这个问题
 
 ```typescript
-// 注意：没有用模块化，类型别名的命名容易和全局变量冲突, 比如ErrorCallback
-type ErrorCB = (err: Error | null, result: string) => void;
-
-function handleData(data: string, callback:ErrorCB):void {
-  ......
-}
-```
-
-当然也能够整个函数提取为类型别名或者接口，交给函数表达式处理：
-
-```typescript
-type ErrorCB = (err: Error | null, result: string) => void;
-
-type HandleData = (data: string, callback: ErrorCB) => void;
-
-const handleData: HandleData = (data, callback) => { 
-  // 模拟一些操作
-  if (data === "error") {
-    callback(new Error("An error occurred"), "");
-  } else {
-    callback(null, `Processed data: ${data}`);
+function combine(a: number, b: number): number;
+function combine(a: string, b: string): string;
+function combine(a: number | string, b: number | string){ 
+  if (typeof a === "number" && typeof b === "number") { 
+    return a * b;
+  } else if (typeof a === "string" && typeof b === "string") { 
+    return a + b;
   }
-}
-```
-
-当然了，也能使用typeof直接获取已有函数的类型声明：
-
-```typescript
-type HandleData = typeof handleData;
-```
-
-在对象字面量类型中声明函数类型，和普通的函数类型声明没有什么差别：
-
-```typescript
-type User = {
-  name: string;
-  id: number;
-  show: (name: string) => void;
-  info(id: number): string;
-}
-```
-
-## 上下文类型推导
-
-直接把函数类型进行声明，Typescript能从上下文中推导出参数的类型。这是Typescript类型推导的一个强大特性，我们一般称为**上下文类型推导**。
-
-**上下文类型推导，在某些时候非常的有用，比如回调函数中**
-
-```typescript
-function times(fn: (index: number) => void, n: number) { 
-  for (let i = 0; i < n; i++) { 
-    fn(i);
-  }
+  throw new Error("must be of the same type");
 }
 
-times((n:number) => console.log(n), 4);
+const result = combine(2, 3);
 ```
 
-上面的函数times的回调函数fn，强调需要一个number类型的参数，并且没有返回类型。
+这里我们的三个 `function combine` 其实具有不同的意义：
 
-当我在调用times函数的时候，当然需要传入这个一个回调函数`(n:number) => console.log(n)`
+- `function combine(a: number, b: number): number;`，**重载签名一**，传入 a和b 的值为 number 时，函数返回值类型为 number 。
+- `function combine(a: string, b: string): string;`，**重载签名二**，传入 a和b 的值为 string 时，函数返回值类型为 string 。
+- `function combine(a: number | string, b: number | string)`，**函数的实现签名**，会包含重载签名的所有可能情况
 
-按照正常情况，既然是一个函数，那么函数中传递的参数，就应该声明类型。
+> 注意：重载签名和实现签名必须放在一起，中间不能插入其他的内容
 
-但是，这里其实我们可以省略，直接简写为:
+继续看下面的例子，根据函数传递的参数，如果传入`string`类型，就转换为10进制的`number`类型，如果传入的是`number`类型或者其他类型，就调用`toString()`转换为`string`类型
 
 ```typescript
-times(n => console.log(n), 4);
+function changeType(x: string | number): number | string { 
+  return typeof x === 'string' ? parseInt(x, 10) : x.toString();
+}
+changeType("1")
 ```
 
-因为Typescript能从上下文推导出n是一个数字，因为在times的签名中，我们声明回调函数f的参数index是一个数字。那么Typescript就能推导出，下面传入的回调函数中的参数n，就是那个参数，该参数的类型必然应该是number类型
-
-但是，也有需要注意的地方：
-
-> 如果回调函数的声明不是在行内直接声明，那么Typescript无法推导出它的类型
+这样写代码依然和之前的问题一样，不能在编译时提供帮助，因此加上**重载签名**
 
 ```typescript
-const fn = (n) => console.log(n); // error 参数n隐式具有“any”类型
-times(fn, 4);
+function changeType(x: string): number;
+function changeType(x: number): string;
+function changeType(x: string | number): number | string { 
+  return typeof x === 'string' ? parseInt(x, 10) : x.toString();
+}
+changeType("2")
 ```
 
-这个错误当然也很好理解，外部直接声明的fn相当于是一个全新的函数了，在声明的时候和times函数是没有任何关联的，当然不可能进行上下文类型推导
+
+
+不过在声明重载的时候，还是有一些细节需要注意，比如，我们模拟`DOM API`中`createElement`函数的处理，这个函数大家都用过，参数传递具体的标签名字符串，就帮我们创建对应的HTML元素
+
+```typescript
+function createElement(tag: "a"): HTMLAnchorElement;
+function createElement(tag: "canvas"): HTMLCanvasElement;
+function createElement(tag: "table"): HTMLTableElement;
+function createElement(tag: string): HTMLElement {
+  return document.createElement(tag);
+}
+
+const a = createElement("a"); // ok
+const b = createElement("b"); // error
+```
+
+由于重载签名只有`a | canvas | table`的情况，因此，如果调用函数的时候，传入不是这三个类型的字符串就会报错，其实我们可以**再加入一个兜底的重载签名**，如果用户传入自定义标签名，或者一些前沿性的标签名，我们直接返回一般性的`HTMLElement`
+
+```diff
+function createElement(tag: "a"): HTMLAnchorElement;
+function createElement(tag: "canvas"): HTMLCanvasElement;
+function createElement(tag: "table"): HTMLTableElement;
++function createElement(tag: string): HTMLElement;
+function createElement(tag: string): HTMLElement {
+  return document.createElement(tag);
+}
+
+const a = createElement("a");
+```
+
+需要注意的是：**拥有多个重载声明的函数在被调用时，是按照重载的声明顺序往下查找的**，简单来说，特殊的子类型，比如类型字面量等我们放在上面，**兜底的类型，我们应该放在最后**，如果你讲兜底的类型放在的最上面，无论如果，函数签名找到的都是第一个
+
+> 实际上，`TypeScript` 中的重载是**伪重载**，它只有**一个具体实现**，其**重载体现在方法调用的签名上而非具体实现上**。而在如 `Java` 等语言中，**重载体现在多个名称一致但入参不同的函数实现上**，这才是**更广义上的函数重载**。
+
