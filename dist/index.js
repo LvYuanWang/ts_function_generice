@@ -1,6 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const user = {
-    name: 'John',
-    age: 30
-};
+/* 调用签名 */
+function add(a, b) {
+    return a + b;
+}
