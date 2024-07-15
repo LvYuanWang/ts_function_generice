@@ -1,23 +1,36 @@
 "use strict";
-/* 泛型的默认类型 */
-function createArray(length, value) {
-    return new Array(length).fill(value);
+/* 受限的泛型 */
+function getObj(obj) {
+    return obj;
 }
-// 当然你会觉得这很多余, 因为函数本身就可以推断出类型, 当我们传入参数时, 会自动推断出类型, 但是如果在类型别名或者接口中使用泛型时, 就需要指定默认类型了
-const arr = createArray(3, 'x');
-console.log(arr); // [ 'x', 'x', 'x' ]
-// 这种情况下, 如果不指定默认类型, 那么在使用时就必须指定类型, 否则会报错
-const a = {
-    value: 3
-};
-const b = {
-    value: '3'
-};
-const myEvent = {
-    target: document.querySelector('div'),
-    type: 'click'
-};
-const myEvent2 = {
-    target: document.querySelector('button'),
-    type: 'click'
-};
+getObj({ id: 1, name: 'Tom' });
+function getLength(obj) {
+    // todo ...
+    return obj.length;
+}
+// 只要传入的对象有length属性就可以
+getLength('123');
+getLength([1, 2, 3]);
+getLength({ length: 10 });
+// getLength({ name: 'Tom' }); // 报错: 对象字面量只能指定已知属性，`length` 属性不存在于类型 `{ name: string; }` 中
+// 封装一个函数, 函数的两个参数的长度相减, 获取长度的差值
+function compare(a, b) {
+    return a.length - b.length;
+}
+const result = compare([1, 2, 3], '123');
+const result2 = compare([1, 2, 3], { length: 2 });
+// compare([1, 2, 3], { name: 'Tom' }); // 报错: 对象字面量只能指定已知属性，`length` 属性不存在于类型 `{ name: string; }` 中
+console.log(result, result2); // 0 1
+const a = { value: 'a' };
+const b = { value: 'b', isLeaf: true };
+const c = { value: 'c', children: [a, b] };
+function mapNode(node, fn) {
+    return {
+        ...node,
+        value: fn(node.value)
+    };
+}
+const a1 = mapNode(a, value => value.toUpperCase());
+const b1 = mapNode(b, value => value + ' Joker');
+const c1 = mapNode(c, value => value.toLowerCase());
+console.log(a1, b1, c1); // { value: 'A' } { value: 'b Joker', isLeaf: true } { value: 'c' }
